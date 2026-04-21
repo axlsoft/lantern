@@ -1,0 +1,19 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+linters-settings:
+  govet:
+    enable:
+      - shadow
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
