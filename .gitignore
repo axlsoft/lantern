@@ -1,0 +1,15 @@
+# Go
+bin/
+*.test
+
+# Node/UI
+node_modules/
+dist/
+coverage/
+
+# Local env
+.env
+.env.local
+
+# macOS
+.DS_Store

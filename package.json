@@ -1,0 +1,11 @@
+{
+  "name": "lantern-monorepo",
+  "private": true,
+  "workspaces": [
+    "ui"
+  ],
+  "scripts": {
+    "bootstrap": "make bootstrap",
+    "lint": "echo 'root lint placeholder'"
+  }
+}
