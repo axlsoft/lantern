@@ -6,8 +6,10 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync/atomic"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/proto"
 
@@ -23,9 +25,10 @@ const supportedSchemaVersion = "1"
 
 // IngestionHandler handles coverage and run lifecycle ingestion endpoints.
 type IngestionHandler struct {
-	pool *pgxpool.Pool
-	q    *generated.Queries
-	cfg  *config.Config
+	pool     *pgxpool.Pool
+	q        *generated.Queries
+	cfg      *config.Config
+	inflight atomic.Int64
 }
 
 // NewIngestionHandler constructs an IngestionHandler.
@@ -36,6 +39,15 @@ func NewIngestionHandler(pool *pgxpool.Pool, cfg *config.Config) *IngestionHandl
 // ── POST /v1/coverage ─────────────────────────────────────────────────────────
 
 func (h *IngestionHandler) IngestCoverage(w http.ResponseWriter, r *http.Request) {
+	if max := int64(h.cfg.MaxConcurrentIngestion); max > 0 {
+		if h.inflight.Add(1) > max {
+			h.inflight.Add(-1)
+			httperr.TooManyRequests(w, "5")
+			return
+		}
+		defer h.inflight.Add(-1)
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, h.cfg.MaxRequestBodyBytes)
 
 	batch, err := decodeCoverageBatch(r)
@@ -107,11 +119,11 @@ func (h *IngestionHandler) IngestCoverage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var inserted int64
+	rows := make([][]any, 0, len(batch.Events))
 	for _, ev := range batch.Events {
 		testID := pgconv.NullUUID(nil)
 		if ev.TestId != "" {
-			if tid, err := parseUUID(ev.TestId); err == nil {
+			if tid, err2 := parseUUID(ev.TestId); err2 == nil {
 				testID = pgconv.NullUUIDFromUUID(tid)
 			}
 		}
@@ -120,23 +132,29 @@ func (h *IngestionHandler) IngestCoverage(w http.ResponseWriter, r *http.Request
 			s := ev.WorkerId
 			workerID = &s
 		}
-		n, err := q.InsertCoverageEvent(r.Context(), generated.InsertCoverageEventParams{
-			RunID:          pgconv.UUID(runID),
-			TestID:         testID,
-			ProjectID:      pgconv.UUID(projectID),
-			OrganizationID: project.OrganizationID,
-			BatchID:        batch.BatchId,
-			FilePath:       ev.FilePath,
-			LineStart:      ev.LineStart,
-			LineEnd:        ev.LineEnd,
-			HitCount:       ev.HitCount,
-			WorkerID:       workerID,
+		rows = append(rows, []any{
+			pgconv.UUID(runID),
+			testID,
+			pgconv.UUID(projectID),
+			project.OrganizationID,
+			batch.BatchId,
+			ev.FilePath,
+			ev.LineStart,
+			ev.LineEnd,
+			ev.HitCount,
+			workerID,
 		})
-		if err != nil {
-			httperr.Internal(w, "could not insert coverage events")
-			return
-		}
-		inserted += n
+	}
+
+	inserted, err := tx.CopyFrom(
+		r.Context(),
+		pgx.Identifier{"coverage_events"},
+		[]string{"run_id", "test_id", "project_id", "organization_id", "batch_id", "file_path", "line_start", "line_end", "hit_count", "worker_id"},
+		pgx.CopyFromRows(rows),
+	)
+	if err != nil {
+		httperr.Internal(w, "could not insert coverage events")
+		return
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {

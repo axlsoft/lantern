@@ -11,7 +11,8 @@ type Config struct {
 	// HTTP server
 	HTTPAddr            string        `envconfig:"HTTP_ADDR"             default:":8080"`
 	ShutdownTimeout     time.Duration `envconfig:"SHUTDOWN_TIMEOUT"      default:"30s"`
-	MaxRequestBodyBytes int64         `envconfig:"MAX_REQUEST_BODY_BYTES" default:"10485760"` // 10 MB
+	MaxRequestBodyBytes    int64         `envconfig:"MAX_REQUEST_BODY_BYTES"      default:"10485760"` // 10 MB
+	MaxConcurrentIngestion int           `envconfig:"MAX_CONCURRENT_INGESTION"    default:"100"`
 
 	// Postgres
 	DatabaseURL     string        `envconfig:"DATABASE_URL"      required:"true"`
