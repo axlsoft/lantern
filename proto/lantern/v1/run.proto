@@ -1,3 +1,84 @@
 syntax = "proto3";
 
 package lantern.v1;
+
+import "lantern/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/axlsoft/lantern/gen/proto/lantern/v1;lanternv1";
+
+// RunStart is emitted by the test runner at the start of a test run.
+message RunStart {
+  Resource resource = 1;
+  // ISO 8601 / RFC 3339 wall-clock time when the run began.
+  google.protobuf.Timestamp started_at = 2;
+  // Total number of tests planned for this run (0 = unknown).
+  int32 planned_test_count = 3;
+  // Attribution mode that will be used throughout this run.
+  AttributionMode attribution_mode = 4;
+}
+
+// RunEnd is emitted by the test runner when the run finishes (pass, fail, or abort).
+message RunEnd {
+  Resource resource = 1;
+  google.protobuf.Timestamp completed_at = 2;
+  RunStatus status = 3;
+  int32 total_tests = 4;
+  int32 passed_tests = 5;
+  int32 failed_tests = 6;
+  int32 skipped_tests = 7;
+}
+
+// TestStart is emitted when an individual test begins execution.
+message TestStart {
+  Resource resource = 1;
+  // SDK-generated unique identifier for this test instance within the run.
+  string test_id = 2;
+  // Human-readable test name.
+  string name = 3;
+  // Test suite or class name.
+  string suite = 4;
+  // Source file containing the test, relative to repo root.
+  string file_path = 5;
+  google.protobuf.Timestamp started_at = 6;
+  // Worker identifier; populated when attribution_mode is WORKER_PINNED.
+  string worker_id = 7;
+}
+
+// TestEnd is emitted when an individual test finishes.
+message TestEnd {
+  Resource resource = 1;
+  string test_id = 2;
+  google.protobuf.Timestamp completed_at = 3;
+  TestStatus status = 4;
+  // Duration of the test in milliseconds.
+  int64 duration_ms = 5;
+  // Error message if status is FAILED or TIMED_OUT.
+  string error_message = 6;
+}
+
+// RunStatus mirrors the run.status column values.
+enum RunStatus {
+  RUN_STATUS_UNSPECIFIED = 0;
+  RUN_STATUS_IN_PROGRESS = 1;
+  RUN_STATUS_COMPLETED = 2;
+  RUN_STATUS_FAILED = 3;
+  RUN_STATUS_ABORTED = 4;
+}
+
+// TestStatus mirrors the tests.status column values.
+enum TestStatus {
+  TEST_STATUS_UNSPECIFIED = 0;
+  TEST_STATUS_PASSED = 1;
+  TEST_STATUS_FAILED = 2;
+  TEST_STATUS_SKIPPED = 3;
+  TEST_STATUS_TIMED_OUT = 4;
+}
+
+// RunBatch groups run lifecycle messages for the run-start/end endpoints.
+message RunBatch {
+  Resource resource = 1;
+  string batch_id = 2;
+  repeated TestStart test_starts = 3;
+  repeated TestEnd test_ends = 4;
+}

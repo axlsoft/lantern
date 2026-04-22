@@ -1,6 +1,8 @@
 # Go
 bin/
-*.test
+*.tes
+go.work
+go.work.sum
 
 # Node/UI
 node_modules/

@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS file_versions;
+DROP TABLE IF EXISTS coverage_events;
+DROP TABLE IF EXISTS tests;
+DROP TABLE IF EXISTS runs;
+DROP TABLE IF EXISTS api_keys;
+DROP TABLE IF EXISTS projects;
+DROP TYPE IF EXISTS test_status;
+DROP TYPE IF EXISTS run_status;

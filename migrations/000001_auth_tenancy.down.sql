@@ -1,0 +1,14 @@
+DROP TABLE IF EXISTS org_invites;
+DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS email_verifications;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS team_memberships;
+DROP TABLE IF EXISTS organization_memberships;
+DROP TABLE IF EXISTS teams;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS organizations;
+DROP TYPE IF EXISTS team_role;
+DROP TYPE IF EXISTS org_role;
+DROP EXTENSION IF EXISTS "pgcrypto";
+DROP EXTENSION IF EXISTS "citext";
+DROP EXTENSION IF EXISTS "uuid-ossp";

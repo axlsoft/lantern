@@ -1,3 +1,36 @@
 syntax = "proto3";
 
 package lantern.v1;
+
+import "lantern/v1/common.proto";
+
+option go_package = "github.com/axlsoft/lantern/gen/proto/lantern/v1;lanternv1";
+
+// Coverage represents a single coverage hit record for a contiguous line range.
+message Coverage {
+  // Source file path relative to the repository root.
+  string file_path = 1;
+  // First line of the covered range (1-indexed, inclusive).
+  int32 line_start = 2;
+  // Last line of the covered range (1-indexed, inclusive).
+  int32 line_end = 3;
+  // Number of times this range was executed during the test.
+  int32 hit_count = 4;
+  // Identifier of the test that produced this coverage record.
+  // Empty when attribution_mode is STATISTICAL.
+  string test_id = 5;
+  // Attribution mode used when collecting this record.
+  AttributionMode attribution_mode = 6;
+  // Worker identifier; required when attribution_mode is WORKER_PINNED.
+  string worker_id = 7;
+}
+
+// CoverageBatch is the top-level envelope sent by SDKs to POST /v1/coverage.
+message CoverageBatch {
+  // Shared resource attributes for all events in this batch.
+  Resource resource = 1;
+  // Client-generated UUID for this batch; used for idempotent re-submission.
+  string batch_id = 2;
+  // Coverage records in this batch.
+  repeated Coverage events = 3;
+}

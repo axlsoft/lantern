@@ -1,3 +1,37 @@
 syntax = "proto3";
 
 package lantern.v1;
+
+option go_package = "github.com/axlsoft/lantern/gen/proto/lantern/v1;lanternv1";
+
+// AttributionMode describes how coverage was attributed to individual tests.
+enum AttributionMode {
+  ATTRIBUTION_MODE_UNSPECIFIED = 0;
+  // Tests ran serially; all coverage between TestStart/TestEnd belongs to that test.
+  ATTRIBUTION_MODE_SERIALIZED = 1;
+  // Each worker runs exactly one test at a time; worker_id is used for attribution.
+  ATTRIBUTION_MODE_WORKER_PINNED = 2;
+  // Statistical attribution via sampling — no guarantees of per-test accuracy.
+  ATTRIBUTION_MODE_STATISTICAL = 3;
+}
+
+// Resource carries shared metadata that applies to a batch of events.
+message Resource {
+  // Unique project identifier within the Lantern tenant.
+  string project_id = 1;
+  // Unique identifier for this test run, client-generated (UUID).
+  string run_id = 2;
+  // Full Git commit SHA being tested.
+  string commit_sha = 3;
+  // Branch name (may be empty for detached HEAD).
+  string branch = 4;
+  // CI platform run identifier (e.g. GitHub Actions run ID).
+  string ci_run_id = 5;
+  // Name of the SDK emitting this batch (e.g. "lantern-dotnet").
+  string sdk_name = 6;
+  // Version of the SDK emitting this batch.
+  string sdk_version = 7;
+  // Wire-format schema version; used for forward/backward compat gating.
+  // Always set this. Current supported value: "1".
+  string schema_version = 8;
+}
