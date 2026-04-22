@@ -7,11 +7,10 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-
-linters-settings:
-  govet:
-    enable:
-      - shadow
+  settings:
+    govet:
+      enable:
+        - shadow
 
 issues:
   max-issues-per-linter: 0
