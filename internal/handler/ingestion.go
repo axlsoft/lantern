@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/proto"
 
@@ -119,7 +118,10 @@ func (h *IngestionHandler) IngestCoverage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	rows := make([][]any, 0, len(batch.Events))
+	// Per-row INSERT: pgx CopyFrom bypasses SET LOCAL RLS parameters and is
+	// therefore incompatible with the tenant isolation model. Bulk performance
+	// at this scale is handled by ON CONFLICT DO NOTHING deduplication.
+	var inserted int64
 	for _, ev := range batch.Events {
 		testID := pgconv.NullUUID(nil)
 		if ev.TestId != "" {
@@ -132,29 +134,23 @@ func (h *IngestionHandler) IngestCoverage(w http.ResponseWriter, r *http.Request
 			s := ev.WorkerId
 			workerID = &s
 		}
-		rows = append(rows, []any{
-			pgconv.UUID(runID),
-			testID,
-			pgconv.UUID(projectID),
-			project.OrganizationID,
-			batch.BatchId,
-			ev.FilePath,
-			ev.LineStart,
-			ev.LineEnd,
-			ev.HitCount,
-			workerID,
+		n, err := q.InsertCoverageEvent(r.Context(), generated.InsertCoverageEventParams{
+			RunID:          pgconv.UUID(runID),
+			TestID:         testID,
+			ProjectID:      pgconv.UUID(projectID),
+			OrganizationID: project.OrganizationID,
+			BatchID:        batch.BatchId,
+			FilePath:       ev.FilePath,
+			LineStart:      ev.LineStart,
+			LineEnd:        ev.LineEnd,
+			HitCount:       ev.HitCount,
+			WorkerID:       workerID,
 		})
-	}
-
-	inserted, err := tx.CopyFrom(
-		r.Context(),
-		pgx.Identifier{"coverage_events"},
-		[]string{"run_id", "test_id", "project_id", "organization_id", "batch_id", "file_path", "line_start", "line_end", "hit_count", "worker_id"},
-		pgx.CopyFromRows(rows),
-	)
-	if err != nil {
-		httperr.Internal(w, "could not insert coverage events")
-		return
+		if err != nil {
+			httperr.Internal(w, "could not insert coverage events")
+			return
+		}
+		inserted += n
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
