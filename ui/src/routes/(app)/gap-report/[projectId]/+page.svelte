@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { api } from '$lib/api-client.js';
 	import type { GapEntry } from '$lib/api-client.js';
-	import { AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-svelte';
+	import { CircleAlert, ThumbsUp, ThumbsDown } from 'lucide-svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
@@ -116,7 +116,7 @@
 
 	{#if error}
 		<div role="alert" class="mb-4 flex items-center gap-2 rounded-md bg-red-50 p-4 text-red-700">
-			<AlertCircle class="h-4 w-4 shrink-0" aria-hidden="true" />
+			<CircleAlert class="h-4 w-4 shrink-0" aria-hidden="true" />
 			{error}
 		</div>
 	{/if}
@@ -134,23 +134,23 @@
 	{:else}
 		<div class="overflow-x-auto rounded-lg border border-gray-200">
 			<table class="w-full text-sm">
-				<thead class="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+				<thead
+					class="bg-gray-50 text-left text-xs font-medium tracking-wide text-gray-500 uppercase"
+				>
 					<tr>
 						<th scope="col" class="px-4 py-3">File / Function</th>
 						<th scope="col" class="px-4 py-3 text-right">Uncovered</th>
-						<th scope="col" class="px-4 py-3 text-right" aria-sort="descending">
-							Risk score
-						</th>
+						<th scope="col" class="px-4 py-3 text-right" aria-sort="descending"> Risk score </th>
 						<th scope="col" class="px-4 py-3 text-right">Feedback</th>
 						<th scope="col" class="px-4 py-3"><span class="sr-only">Actions</span></th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-gray-100 bg-white">
-					{#each gaps as gap, i (gap.file_path + ':' + gap.line_start)}
+					{#each gaps as gap (gap.file_path + ':' + gap.line_start)}
 						<tr class="hover:bg-gray-50">
 							<td class="px-4 py-3">
 								<p class="font-medium text-gray-900">{gap.function_name}</p>
-								<p class="text-xs text-gray-400 font-mono">{gap.file_path}:{gap.line_start}</p>
+								<p class="font-mono text-xs text-gray-400">{gap.file_path}:{gap.line_start}</p>
 							</td>
 							<td class="px-4 py-3 text-right font-semibold text-red-600">
 								{gap.uncovered_lines}
@@ -162,13 +162,13 @@
 								<div class="flex justify-end gap-1">
 									<button
 										aria-label={`This gap is useful — ${gap.function_name} in ${gap.file_path}`}
-										class="rounded p-1 text-gray-400 hover:text-green-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+										class="rounded p-1 text-gray-400 hover:text-green-600 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
 									>
 										<ThumbsUp class="h-3.5 w-3.5" aria-hidden="true" />
 									</button>
 									<button
 										aria-label={`This gap is not useful — ${gap.function_name} in ${gap.file_path}`}
-										class="rounded p-1 text-gray-400 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+										class="rounded p-1 text-gray-400 hover:text-red-500 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
 									>
 										<ThumbsDown class="h-3.5 w-3.5" aria-hidden="true" />
 									</button>
@@ -191,11 +191,7 @@
 
 		{#if nextCursor}
 			<div class="mt-4 text-center">
-				<Button
-					variant="outline"
-					loading={loadingMore}
-					onclick={() => loadGaps(false)}
-				>
+				<Button variant="outline" loading={loadingMore} onclick={() => loadGaps(false)}>
 					{loadingMore ? 'Loading…' : 'Load more'}
 				</Button>
 			</div>

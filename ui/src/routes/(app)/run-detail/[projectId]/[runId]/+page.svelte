@@ -8,7 +8,7 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
-	import { AlertCircle, Clock, ArrowLeft } from 'lucide-svelte';
+	import { CircleAlert, Clock, ArrowLeft } from 'lucide-svelte';
 
 	const projectId = $derived(page.params.projectId!);
 	const runId = $derived(page.params.runId!);
@@ -53,12 +53,7 @@
 		if (!nextCursor || loadingMore) return;
 		loadingMore = true;
 		try {
-			const res = await api.listRunTests(
-				projectId,
-				runId,
-				nextCursor,
-				statusFilter || undefined
-			);
+			const res = await api.listRunTests(projectId, runId, nextCursor, statusFilter || undefined);
 			tests = [...tests, ...res.tests];
 			nextCursor = res.next_cursor;
 		} finally {
@@ -76,18 +71,11 @@
 		tests = [];
 		nextCursor = null;
 		try {
-			const res = await api.listRunTests(
-				projectId,
-				runId,
-				undefined,
-				statusFilter || undefined
-			);
+			const res = await api.listRunTests(projectId, runId, undefined, statusFilter || undefined);
 			// Client-side name filter (name filter endpoint not separate — apply locally).
 			const all = res.tests;
 			const filtered = nameFilter
-				? all.filter((t) =>
-						`${t.suite} ${t.name}`.toLowerCase().includes(nameFilter.toLowerCase())
-					)
+				? all.filter((t) => `${t.suite} ${t.name}`.toLowerCase().includes(nameFilter.toLowerCase()))
 				: all;
 			tests = filtered;
 			nextCursor = res.next_cursor;
@@ -116,7 +104,7 @@
 		<a
 			href={`/dashboard?project=${projectId}`}
 			aria-label="Back to dashboard"
-			class="rounded p-1 text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+			class="rounded p-1 text-gray-400 hover:text-gray-600 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
 		>
 			<ArrowLeft class="h-4 w-4" aria-hidden="true" />
 		</a>
@@ -124,10 +112,10 @@
 	</div>
 
 	{#if loading && !run}
-		<Skeleton class="h-40 rounded-lg mb-6" label="Loading run summary" />
+		<Skeleton class="mb-6 h-40 rounded-lg" label="Loading run summary" />
 	{:else if error}
-		<div role="alert" class="flex items-center gap-2 rounded-md bg-red-50 p-4 text-red-700 mb-6">
-			<AlertCircle class="h-4 w-4 shrink-0" aria-hidden="true" />
+		<div role="alert" class="mb-6 flex items-center gap-2 rounded-md bg-red-50 p-4 text-red-700">
+			<CircleAlert class="h-4 w-4 shrink-0" aria-hidden="true" />
 			{error}
 		</div>
 	{:else if run}
@@ -136,7 +124,13 @@
 			<div class="flex flex-wrap items-start justify-between gap-4">
 				<div class="space-y-1">
 					<div class="flex items-center gap-2">
-						<Badge variant={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'danger' : 'warning'}>
+						<Badge
+							variant={run.status === 'completed'
+								? 'success'
+								: run.status === 'failed'
+									? 'danger'
+									: 'warning'}
+						>
 							<span class="sr-only">Status:</span>
 							{run.status.replace('_', ' ')}
 						</Badge>
@@ -149,18 +143,15 @@
 						<Clock class="inline h-3 w-3 align-text-bottom" aria-hidden="true" />
 						Started {formatDate(run.started_at)}
 						{#if run.completed_at}
-							· Duration {formatDuration(new Date(run.completed_at).getTime() - new Date(run.started_at).getTime())}
+							· Duration {formatDuration(
+								new Date(run.completed_at).getTime() - new Date(run.started_at).getTime()
+							)}
 						{/if}
 					</p>
 				</div>
 
 				<div class="flex gap-6 text-center">
-					{#each [
-						{ label: 'Total', val: run.total_tests },
-						{ label: 'Passed', val: run.passed_tests, cls: 'text-green-600' },
-						{ label: 'Failed', val: run.failed_tests, cls: 'text-red-600' },
-						{ label: 'Skipped', val: run.skipped_tests, cls: 'text-gray-400' }
-					] as stat (stat.label)}
+					{#each [{ label: 'Total', val: run.total_tests }, { label: 'Passed', val: run.passed_tests, cls: 'text-green-600' }, { label: 'Failed', val: run.failed_tests, cls: 'text-red-600' }, { label: 'Skipped', val: run.skipped_tests, cls: 'text-gray-400' }] as stat (stat.label)}
 						<div>
 							<p class="text-2xl font-bold {stat.cls ?? 'text-gray-900'}">{stat.val}</p>
 							<p class="text-xs text-gray-500">{stat.label}</p>
@@ -189,7 +180,7 @@
 					id="status-filter"
 					bind:value={statusFilter}
 					onchange={applyFilter}
-					class="h-9 rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+					class="h-9 rounded-md border border-gray-300 px-3 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
 				>
 					<option value="">All</option>
 					<option value="passed">Passed</option>
@@ -210,7 +201,9 @@
 		{:else}
 			<Card>
 				<table class="w-full text-sm">
-					<thead class="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+					<thead
+						class="bg-gray-50 text-left text-xs font-medium tracking-wide text-gray-500 uppercase"
+					>
 						<tr>
 							<th scope="col" class="px-4 py-3">Test</th>
 							<th scope="col" class="px-4 py-3">Status</th>

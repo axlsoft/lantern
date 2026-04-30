@@ -5,11 +5,10 @@
 	import type { FileCoverage, Project, Run } from '$lib/api-client.js';
 	import FileViewer from '$lib/components/features/FileViewer.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
-	import { AlertCircle, ArrowLeft } from 'lucide-svelte';
+	import { CircleAlert, ArrowLeft } from 'lucide-svelte';
 
 	const projectId = $derived(page.params.projectId!);
 	const filePath = $derived(page.url.searchParams.get('path') ?? '');
-	const jumpLine = $derived(parseInt(page.url.searchParams.get('line') ?? '0', 10) || 0);
 	const testId = $derived(page.url.searchParams.get('test') ?? undefined);
 
 	let project = $state<Project | null>(null);
@@ -88,7 +87,7 @@
 		<a
 			href={`/gap-report/${projectId}`}
 			aria-label="Back to gap report"
-			class="rounded p-1 text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+			class="rounded p-1 text-gray-400 hover:text-gray-600 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
 		>
 			<ArrowLeft class="h-4 w-4" aria-hidden="true" />
 		</a>
@@ -103,7 +102,7 @@
 				<select
 					id="run-select"
 					onchange={onRunChange}
-					class="rounded border border-gray-200 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+					class="rounded border border-gray-200 px-2 py-1 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
 				>
 					{#each runs as run (run.id)}
 						<option value={run.id} selected={run.id === selectedRunId}>
@@ -117,7 +116,9 @@
 	</div>
 
 	<!-- Coverage legend -->
-	<div class="flex shrink-0 items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-1.5 text-xs">
+	<div
+		class="flex shrink-0 items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-1.5 text-xs"
+	>
 		<span class="flex items-center gap-1.5">
 			<span class="h-3 w-1 rounded-sm bg-green-500" aria-hidden="true"></span>
 			Covered
@@ -127,7 +128,8 @@
 			Uncovered
 		</span>
 		<span class="flex items-center gap-1.5">
-			<span class="h-3 w-1 rounded-sm bg-transparent border border-gray-300" aria-hidden="true"></span>
+			<span class="h-3 w-1 rounded-sm border border-gray-300 bg-transparent" aria-hidden="true"
+			></span>
 			Not instrumented
 		</span>
 		{#if testId}
@@ -141,7 +143,7 @@
 			<Skeleton class="m-4 h-96 rounded-lg" label="Loading file coverage" />
 		{:else if error}
 			<div role="alert" class="flex items-center gap-2 p-4 text-red-700">
-				<AlertCircle class="h-4 w-4 shrink-0" aria-hidden="true" />
+				<CircleAlert class="h-4 w-4 shrink-0" aria-hidden="true" />
 				{error}
 			</div>
 		{:else if !filePath}

@@ -41,7 +41,11 @@
 
 		<form onsubmit={handleSubmit} novalidate class="flex flex-col gap-4">
 			{#if error}
-				<div role="alert" aria-live="assertive" class="rounded-md bg-red-50 p-3 text-sm text-red-700">
+				<div
+					role="alert"
+					aria-live="assertive"
+					class="rounded-md bg-red-50 p-3 text-sm text-red-700"
+				>
 					{error}
 				</div>
 			{/if}

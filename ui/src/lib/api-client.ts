@@ -327,10 +327,10 @@ class ApiClient {
 	// ── API Keys ────────────────────────────────────────────────────────────
 
 	createApiKey(projectId: string, name: string) {
-		return this.request<{ api_key: ApiKeyCreated }>(
-			`/api/v1/projects/${projectId}/api-keys`,
-			{ method: 'POST', body: JSON.stringify({ name }) }
-		);
+		return this.request<{ api_key: ApiKeyCreated }>(`/api/v1/projects/${projectId}/api-keys`, {
+			method: 'POST',
+			body: JSON.stringify({ name })
+		});
 	}
 
 	listApiKeys(projectId: string) {
@@ -384,9 +384,7 @@ class ApiClient {
 		if (params?.cursor) q.set('cursor', params.cursor);
 		if (params?.path) q.set('path', params.path.slice(0, 500));
 		if (params?.min_risk != null) q.set('min_risk', String(params.min_risk));
-		return this.request<GapsPage>(
-			`/api/v1/projects/${projectId}/gaps${q.size ? `?${q}` : ''}`
-		);
+		return this.request<GapsPage>(`/api/v1/projects/${projectId}/gaps${q.size ? `?${q}` : ''}`);
 	}
 
 	getFileCoverage(projectId: string, filePath: string, commitSha: string) {

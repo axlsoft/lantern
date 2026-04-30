@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { session, logout } from '$lib/auth.js';
-	import { api } from '$lib/api-client.js';
 	import type { Project } from '$lib/api-client.js';
 	import { ChevronDown, LogOut, Settings } from 'lucide-svelte';
 
@@ -19,7 +18,6 @@
 	// Active project stored in sessionStorage for persistence across navigations.
 	let projects = $state<Project[]>([]);
 	let activeProjectId = $state<string | null>(null);
-	let projectsLoading = $state(false);
 
 	function getStoredProjectId(): string | null {
 		try {
@@ -50,18 +48,15 @@
 
 		if (!session.user) return;
 
-		projectsLoading = true;
 		try {
-			// Load orgs → teams → projects for the current user.
-			// For MVP, fetch the user's orgs via their first org membership.
-			// A proper "list my projects" endpoint is the cleaner solution (Phase 2 cleanup).
-			// For now, try to use the stored project id to avoid a full re-fetch.
+			// For MVP, use the stored project id. A "list my projects" endpoint
+			// will replace this in Phase 2.
 			const storedId = getStoredProjectId();
 			if (storedId) {
 				activeProjectId = storedId;
 			}
 		} finally {
-			projectsLoading = false;
+			// no-op
 		}
 	});
 
@@ -94,7 +89,7 @@
 				<div class="flex flex-1 items-center gap-1">
 					<a
 						href={activeProjectId ? `/dashboard?project=${activeProjectId}` : '/dashboard'}
-						class="rounded px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600
+						class="rounded px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none
 							{page.url.pathname === '/dashboard' ? 'bg-gray-100 font-medium' : ''}"
 					>
 						Dashboard
@@ -102,7 +97,7 @@
 					{#if activeProjectId}
 						<a
 							href={`/gap-report/${activeProjectId}`}
-							class="rounded px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600
+							class="rounded px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none
 								{page.url.pathname.startsWith('/gap-report') ? 'bg-gray-100 font-medium' : ''}"
 						>
 							Gap Report
@@ -118,7 +113,7 @@
 							aria-haspopup="listbox"
 							aria-expanded={menuOpen}
 							aria-label={`Selected project: ${activeProjectId ?? 'none'}`}
-							class="flex items-center gap-1 rounded border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+							class="flex items-center gap-1 rounded border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
 						>
 							<span class="max-w-[160px] truncate">
 								{projects.find((p) => p.id === activeProjectId)?.name ?? 'Select project'}
@@ -135,7 +130,10 @@
 								{#each projects as project (project.id)}
 									<li role="option" aria-selected={project.id === activeProjectId}>
 										<button
-											onclick={() => { selectProject(project.id); menuOpen = false; }}
+											onclick={() => {
+												selectProject(project.id);
+												menuOpen = false;
+											}}
 											class="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50
 												{project.id === activeProjectId ? 'font-medium text-blue-600' : 'text-gray-700'}"
 										>
@@ -153,14 +151,14 @@
 					<a
 						href="/admin"
 						aria-label="Organization settings"
-						class="rounded p-1.5 text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+						class="rounded p-1.5 text-gray-500 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
 					>
 						<Settings class="h-4 w-4" aria-hidden="true" />
 					</a>
 					<button
 						onclick={logout}
 						aria-label="Sign out"
-						class="rounded p-1.5 text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+						class="rounded p-1.5 text-gray-500 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
 					>
 						<LogOut class="h-4 w-4" aria-hidden="true" />
 					</button>

@@ -32,11 +32,7 @@ export async function initSession() {
 	}
 }
 
-export async function login(
-	email: string,
-	password: string,
-	next?: string
-): Promise<void> {
+export async function login(email: string, password: string, next?: string): Promise<void> {
 	const res = await api.login(email, password);
 	_user = res.user;
 	const dest = next && isSafeRedirect(next) ? next : '/dashboard';

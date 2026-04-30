@@ -9,7 +9,7 @@ node_modules/
 dist/
 coverage/
 .svelte-kit/
-build/
+/build/
 
 # Local env
 .env

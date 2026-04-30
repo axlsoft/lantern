@@ -37,8 +37,9 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			// We don't use the View Transitions API, so navigation needs no resolve() callback.
+			'svelte/no-navigation-without-resolve': 'off'
+		}
 	}
 );

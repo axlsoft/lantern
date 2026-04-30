@@ -29,9 +29,7 @@
 	let { projectId, filePath, commitSha, source, language, coverage, testId }: Props = $props();
 
 	// Build a line→coverage map for O(1) lookup.
-	const coverageMap = $derived(
-		new Map(coverage.map((c) => [c.line, c]))
-	);
+	const coverageMap = $derived(new Map(coverage.map((c) => [c.line, c])));
 
 	const sourceLines = $derived(source.split('\n'));
 	const lineCount = $derived(sourceLines.length);
@@ -56,7 +54,7 @@
 			});
 			// Split the pre/code wrapper into per-line spans.
 			// Shiki inline mode returns bare spans per token; we wrap per line.
-			htmlLines = splitToLines(html, src);
+			htmlLines = splitToLines(html);
 		} catch {
 			// Fallback: render plain text lines.
 			htmlLines = sourceLines.map((l) => escapeHtml(l));
@@ -65,7 +63,7 @@
 		}
 	}
 
-	function splitToLines(highlighted: string, rawSrc: string): string[] {
+	function splitToLines(highlighted: string): string[] {
 		// Shiki's inline structure returns a string of spans without line wrapping.
 		// We split by newlines in the raw source and match token boundaries.
 		// For simplicity, split the highlighted output by \n-equivalent spans.
@@ -134,7 +132,9 @@
 	const useVirtualizer = $derived(lineCount > VIRTUALIZE_THRESHOLD);
 	let scrollerEl = $state<HTMLDivElement | null>(null);
 
-	let virtualItems = $state<ReturnType<SvelteVirtualizer<HTMLDivElement, Element>['getVirtualItems']> | null>(null);
+	let virtualItems = $state<ReturnType<
+		SvelteVirtualizer<HTMLDivElement, Element>['getVirtualItems']
+	> | null>(null);
 	let totalSize = $state(0);
 
 	$effect(() => {
@@ -189,17 +189,21 @@
 							onmouseenter={() => showTooltip(lineNum)}
 							onmouseleave={hideTooltip}
 						>
-							<span aria-hidden="true" class="w-12 shrink-0 select-none pr-3 text-right text-xs text-gray-300 leading-[22px]">
+							<span
+								aria-hidden="true"
+								class="w-12 shrink-0 pr-3 text-right text-xs leading-[22px] text-gray-300 select-none"
+							>
 								{lineNum}
 							</span>
 							<span class="sr-only">Line {lineNum} — {statusLabels[status]}</span>
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 							<pre class="min-w-0 flex-1 leading-[22px]">{@html htmlLine}</pre>
 
 							{#if tooltipLine === lineNum}
 								<div
 									bind:this={tooltipEl}
 									role="tooltip"
-									class="absolute left-16 top-6 z-50 min-w-[200px] rounded-md border border-gray-200 bg-white p-2 shadow-lg text-xs"
+									class="absolute top-6 left-16 z-50 min-w-[200px] rounded-md border border-gray-200 bg-white p-2 text-xs shadow-lg"
 								>
 									{#if tooltipLoading}
 										<p class="text-gray-400">Loading tests…</p>
@@ -221,11 +225,7 @@
 		</div>
 	{:else}
 		<!-- Direct rendering for small files -->
-		<div
-			class="overflow-auto font-mono"
-			role="list"
-			aria-label="Source file lines"
-		>
+		<div class="overflow-auto font-mono" role="list" aria-label="Source file lines">
 			{#each sourceLines as rawLine, idx (idx)}
 				{@const lineNum = idx + 1}
 				{@const status = lineStatus(lineNum)}
@@ -242,16 +242,20 @@
 					onmouseenter={() => showTooltip(lineNum)}
 					onmouseleave={hideTooltip}
 				>
-					<span aria-hidden="true" class="w-12 shrink-0 select-none pr-3 text-right text-xs text-gray-300 leading-[22px]">
+					<span
+						aria-hidden="true"
+						class="w-12 shrink-0 pr-3 text-right text-xs leading-[22px] text-gray-300 select-none"
+					>
 						{lineNum}
 					</span>
 					<span class="sr-only">Line {lineNum} — {statusLabels[status]}</span>
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					<pre class="min-w-0 flex-1 leading-[22px] whitespace-pre">{@html htmlLine}</pre>
 
 					{#if tooltipLine === lineNum}
 						<div
 							role="tooltip"
-							class="absolute left-16 z-50 min-w-[200px] rounded-md border border-gray-200 bg-white p-2 shadow-lg text-xs"
+							class="absolute left-16 z-50 min-w-[200px] rounded-md border border-gray-200 bg-white p-2 text-xs shadow-lg"
 						>
 							{#if tooltipLoading}
 								<p class="text-gray-400">Loading tests…</p>

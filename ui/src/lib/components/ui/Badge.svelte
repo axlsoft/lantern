@@ -20,6 +20,12 @@
 	};
 </script>
 
-<span class={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', variants[variant], cls)}>
+<span
+	class={cn(
+		'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+		variants[variant],
+		cls
+	)}
+>
 	{@render children()}
 </span>

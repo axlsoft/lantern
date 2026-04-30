@@ -7,9 +7,8 @@
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
-	import { AlertCircle, Plus, Key, Trash2, Copy, Check } from 'lucide-svelte';
+	import { Plus, Key, Trash2, Copy, Check } from 'lucide-svelte';
 	import { onMount } from 'svelte';
-	import { session } from '$lib/auth.js';
 
 	// ── State ────────────────────────────────────────────────────────────────
 
@@ -17,7 +16,6 @@
 	let teams = $state<Team[]>([]);
 	let projects = $state<Project[]>([]);
 	let loading = $state(true);
-	let error = $state('');
 
 	// Dialog state
 	let showCreateOrg = $state(false);
@@ -61,15 +59,6 @@
 			loading = false;
 		}
 	});
-
-	async function loadOrgDetails(orgId: string) {
-		const [orgRes, teamsRes] = await Promise.all([
-			api.getOrg(orgId),
-			api.listTeams(orgId)
-		]);
-		org = orgRes.organization;
-		teams = teamsRes.teams;
-	}
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -251,7 +240,11 @@
 					<Card>
 						<ul role="list">
 							{#each teams as team, i (team.id)}
-								<li class="flex items-center justify-between px-4 py-3 {i > 0 ? 'border-t border-gray-100' : ''}">
+								<li
+									class="flex items-center justify-between px-4 py-3 {i > 0
+										? 'border-t border-gray-100'
+										: ''}"
+								>
 									<span class="font-medium text-gray-800">{team.name}</span>
 									<Button
 										variant="outline"
@@ -282,7 +275,11 @@
 					<Card>
 						<ul role="list">
 							{#each projects as project, i (project.id)}
-								<li class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 {i > 0 ? 'border-t border-gray-100' : ''}">
+								<li
+									class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 {i > 0
+										? 'border-t border-gray-100'
+										: ''}"
+								>
 									<div>
 										<p class="font-medium text-gray-800">{project.name}</p>
 										{#if project.github_repo_full_name}
@@ -292,11 +289,7 @@
 										{/if}
 									</div>
 									<div class="flex gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onclick={() => openApiKeyModal(project.id)}
-										>
+										<Button variant="outline" size="sm" onclick={() => openApiKeyModal(project.id)}>
 											<Key class="h-3.5 w-3.5" aria-hidden="true" />
 											API keys
 										</Button>
@@ -330,6 +323,7 @@
 		<FormField id="org-name" label="Organization name">
 			<Input id="org-name" bind:value={orgName} required placeholder="Acme Corp" />
 		</FormField>
+		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 		{#snippet footer()}
 			<Button variant="outline" onclick={() => (showCreateOrg = false)}>Cancel</Button>
 			<Button type="submit" loading={formLoading}>Create</Button>
@@ -363,6 +357,7 @@
 				{/each}
 			</div>
 		</fieldset>
+		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 		{#snippet footer()}
 			<Button variant="outline" onclick={() => (showInviteUser = false)}>Cancel</Button>
 			<Button type="submit" loading={formLoading}>Send invite</Button>
@@ -379,6 +374,7 @@
 		<FormField id="team-name" label="Team name">
 			<Input id="team-name" bind:value={teamName} required placeholder="Platform" />
 		</FormField>
+		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 		{#snippet footer()}
 			<Button variant="outline" onclick={() => (showCreateTeam = false)}>Cancel</Button>
 			<Button type="submit" loading={formLoading}>Create</Button>
@@ -398,6 +394,7 @@
 		<FormField id="proj-repo" label="GitHub repo (optional)">
 			<Input id="proj-repo" bind:value={projectRepo} placeholder="owner/repo" />
 		</FormField>
+		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 		{#snippet footer()}
 			<Button variant="outline" onclick={() => (showCreateProject = false)}>Cancel</Button>
 			<Button type="submit" loading={formLoading}>Create</Button>
@@ -406,11 +403,7 @@
 </Dialog>
 
 <!-- API Keys modal -->
-<Dialog
-	bind:open={showApiKeyModal}
-	title="API Keys"
-	onclose={closeApiKeyModal}
->
+<Dialog bind:open={showApiKeyModal} title="API Keys" onclose={closeApiKeyModal}>
 	<div class="space-y-4">
 		{#if newApiKey}
 			<div class="rounded-md bg-green-50 p-4">
@@ -418,13 +411,15 @@
 					Copy this key now — it will not be shown again.
 				</p>
 				<div class="flex items-center gap-2">
-					<code class="flex-1 truncate rounded bg-green-100 px-2 py-1 text-xs font-mono text-green-900">
+					<code
+						class="flex-1 truncate rounded bg-green-100 px-2 py-1 font-mono text-xs text-green-900"
+					>
 						{newApiKey.key}
 					</code>
 					<button
 						onclick={copyApiKey}
 						aria-label={apiKeyCopied ? 'Copied to clipboard' : 'Copy API key to clipboard'}
-						class="rounded p-1 text-green-700 hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+						class="rounded p-1 text-green-700 hover:bg-green-100 focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:outline-none"
 					>
 						{#if apiKeyCopied}
 							<Check class="h-4 w-4" aria-hidden="true" />
@@ -463,7 +458,7 @@
 					<li class="flex items-center justify-between px-3 py-2">
 						<div>
 							<p class="text-sm font-medium text-gray-800">{key.name}</p>
-							<p class="text-xs text-gray-400 font-mono">{key.key_prefix}…</p>
+							<p class="font-mono text-xs text-gray-400">{key.key_prefix}…</p>
 						</div>
 						{#if !key.revoked_at}
 							<Button
@@ -495,10 +490,7 @@
 			<p class="text-sm text-gray-700">
 				This action is irreversible. Type <strong>{deleteTarget.name}</strong> to confirm.
 			</p>
-			<FormField
-				id="confirm-name"
-				label={`Type "${deleteTarget.name}" to confirm`}
-			>
+			<FormField id="confirm-name" label={`Type "${deleteTarget.name}" to confirm`}>
 				<Input
 					id="confirm-name"
 					bind:value={deleteConfirmText}
@@ -514,6 +506,7 @@
 				<p role="alert" class="text-sm text-red-600">{formError}</p>
 			{/if}
 		</div>
+		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 		{#snippet footer()}
 			<Button variant="outline" onclick={() => (showDeleteConfirm = false)}>Cancel</Button>
 			<Button

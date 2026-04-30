@@ -4,7 +4,7 @@
 	import type { PrDetail } from '$lib/api-client.js';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
-	import { AlertCircle, ArrowLeft, Clock } from 'lucide-svelte';
+	import { CircleAlert, ArrowLeft, Clock } from 'lucide-svelte';
 
 	const projectId = $derived(page.params.projectId!);
 	const prNumber = $derived(parseInt(page.params.prNumber!, 10));
@@ -40,7 +40,7 @@
 		<a
 			href={`/dashboard?project=${projectId}`}
 			aria-label="Back to dashboard"
-			class="rounded p-1 text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+			class="rounded p-1 text-gray-400 hover:text-gray-600 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
 		>
 			<ArrowLeft class="h-4 w-4" aria-hidden="true" />
 		</a>
@@ -51,7 +51,7 @@
 		<Skeleton class="h-64 rounded-lg" label="Loading PR coverage" />
 	{:else if error}
 		<div role="alert" class="flex items-center gap-2 rounded-md bg-red-50 p-4 text-red-700">
-			<AlertCircle class="h-4 w-4 shrink-0" aria-hidden="true" />
+			<CircleAlert class="h-4 w-4 shrink-0" aria-hidden="true" />
 			{error}
 		</div>
 	{:else if pr}
@@ -67,7 +67,7 @@
 			</div>
 		{:else}
 			<Card class="mb-4 p-4">
-				<p class="text-sm text-gray-500 mb-1">Head commit</p>
+				<p class="mb-1 text-sm text-gray-500">Head commit</p>
 				<p class="font-mono text-sm text-gray-900">{pr.head_sha.slice(0, 7)}</p>
 			</Card>
 		{/if}
@@ -80,7 +80,9 @@
 			<div class="overflow-x-auto rounded-lg border border-gray-200">
 				<table class="w-full text-sm">
 					<caption class="sr-only">Changed files with coverage data for PR #{prNumber}</caption>
-					<thead class="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+					<thead
+						class="bg-gray-50 text-left text-xs font-medium tracking-wide text-gray-500 uppercase"
+					>
 						<tr>
 							<th scope="col" class="px-4 py-3">File</th>
 							<th scope="col" class="px-4 py-3 text-right">Added lines</th>
@@ -100,13 +102,19 @@
 							<tr class="hover:bg-gray-50">
 								<td class="px-4 py-3 font-mono text-xs text-gray-800">{file.file_path}</td>
 								<td class="px-4 py-3 text-right text-gray-600">
-									<span aria-label="{file.added_lines} lines added in this PR">{file.added_lines}</span>
+									<span aria-label="{file.added_lines} lines added in this PR"
+										>{file.added_lines}</span
+									>
 								</td>
 								<td class="px-4 py-3 text-right font-semibold text-green-600">
-									<span aria-label="{file.covered_lines} lines covered in this PR">{file.covered_lines}</span>
+									<span aria-label="{file.covered_lines} lines covered in this PR"
+										>{file.covered_lines}</span
+									>
 								</td>
 								<td class="px-4 py-3 text-right font-semibold text-red-600">
-									<span aria-label="{file.uncovered_lines} lines uncovered in this PR">{file.uncovered_lines}</span>
+									<span aria-label="{file.uncovered_lines} lines uncovered in this PR"
+										>{file.uncovered_lines}</span
+									>
 								</td>
 								<td class="px-4 py-3 text-right">
 									{#if pr.run_id}

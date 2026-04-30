@@ -31,7 +31,7 @@
 		<button
 			onclick={onclose}
 			aria-label="Dismiss notification"
-			class="text-current opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
+			class="text-current opacity-70 hover:opacity-100 focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none"
 		>
 			✕
 		</button>

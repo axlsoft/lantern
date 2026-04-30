@@ -48,7 +48,11 @@
 		<h1 class="mb-6 text-center text-2xl font-bold text-gray-900">Set new password</h1>
 
 		{#if done}
-			<div role="status" aria-live="polite" class="rounded-md bg-green-50 p-4 text-sm text-green-800">
+			<div
+				role="status"
+				aria-live="polite"
+				class="rounded-md bg-green-50 p-4 text-sm text-green-800"
+			>
 				<p class="font-medium">Password updated</p>
 				<button
 					onclick={() => goto('/auth/login')}
@@ -60,7 +64,11 @@
 		{:else}
 			<form onsubmit={handleSubmit} novalidate class="flex flex-col gap-4">
 				{#if error}
-					<div role="alert" aria-live="assertive" class="rounded-md bg-red-50 p-3 text-sm text-red-700">
+					<div
+						role="alert"
+						aria-live="assertive"
+						class="rounded-md bg-red-50 p-3 text-sm text-red-700"
+					>
 						{error}
 					</div>
 				{/if}
