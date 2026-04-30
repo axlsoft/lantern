@@ -9,7 +9,7 @@ linters:
     - unused
   settings:
     govet:
-      enable:
+      disable:
         - shadow
 
 issues:

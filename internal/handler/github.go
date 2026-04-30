@@ -93,7 +93,7 @@ func (h *GitHubHandler) ProxyContents(w http.ResponseWriter, r *http.Request) {
 		httperr.Internal(w, "GitHub request failed")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		httperr.NotFound(w, "file not found in repository")

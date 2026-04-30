@@ -65,7 +65,7 @@ func main() {
 	// ── Health ──────────────────────────────────────────────────────────────
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"status":"ok"}`)
+		_, _ = fmt.Fprint(w, `{"status":"ok"}`)
 	})
 	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		pingCtx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -73,11 +73,11 @@ func main() {
 		if err := pool.Ping(pingCtx); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			fmt.Fprintf(w, `{"status":"unavailable","error":%q}`, err.Error())
+			_, _ = fmt.Fprintf(w, `{"status":"unavailable","error":%q}`, err.Error())
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"status":"ok"}`)
+		_, _ = fmt.Fprint(w, `{"status":"ok"}`)
 	})
 
 	// ── Auth (public) ────────────────────────────────────────────────────────
@@ -220,7 +220,7 @@ func spaHandler(fsys fs.FS) http.Handler {
 
 		f, err := fsys.Open(path)
 		if err == nil {
-			f.Close()
+			_ = f.Close()
 			if r.URL.Path != "/" && r.URL.Path != "/index.html" {
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			} else {

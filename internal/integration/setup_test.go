@@ -191,7 +191,7 @@ func (c *client) delete(path string) *http.Response          { return c.do("DELE
 // mustJSON decodes a JSON response body into a map. Closes the body.
 func mustJSON(t *testing.T, resp *http.Response) map[string]any {
 	t.Helper()
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	var m map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
 		t.Fatalf("decode JSON response (status %d): %v", resp.StatusCode, err)

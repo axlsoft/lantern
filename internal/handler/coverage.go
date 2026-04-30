@@ -39,13 +39,6 @@ func NewCoverageHandler(pool *pgxpool.Pool, cfg *config.Config) *CoverageHandler
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-func userFromReq(r *http.Request) (string, bool) {
-	id, ok := tenancy.UserFromContext(r.Context())
-	if !ok {
-		return "", false
-	}
-	return id.String(), true
-}
 
 func nullStr(t *string) any {
 	if t == nil {
@@ -78,7 +71,7 @@ func fmtTimePtr(t pgtype.Timestamptz) *string {
 
 func validateFilePath(p string) error {
 	if strings.Contains(p, "..") {
-		return fmt.Errorf("invalid file path: contains ..")
+		return fmt.Errorf("invalid file path: contains parent directory traversal")
 	}
 	if len(p) == 0 || len(p) > 1024 {
 		return fmt.Errorf("invalid file path length")
