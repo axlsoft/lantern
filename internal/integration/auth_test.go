@@ -20,7 +20,7 @@ func TestAuthFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d: %v", resp.StatusCode, mustJSON(t, resp))
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("duplicate email returns 409", func(t *testing.T) {
@@ -29,7 +29,7 @@ func TestAuthFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusConflict {
 			t.Fatalf("expected 409, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("login before verification returns 401", func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestAuthFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("expected 401, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("wrong password returns 401", func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestAuthFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("expected 401, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("login succeeds and me returns profile", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestAuthFlow(t *testing.T) {
 			t.Fatalf("expected 200, got %d: %v", resp.StatusCode, mustJSON(t, resp))
 		}
 		c.cookies = resp.Cookies()
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		resp = c.get("/api/v1/auth/me")
 		if resp.StatusCode != http.StatusOK {
@@ -80,7 +80,7 @@ func TestAuthFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("expected 401, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("logout deletes session", func(t *testing.T) {
@@ -89,14 +89,14 @@ func TestAuthFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("logout: expected 200, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		// Subsequent /me should return 401.
 		resp = c.get("/api/v1/auth/me")
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("after logout, /me: expected 401, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 }
 
@@ -114,14 +114,14 @@ func TestPasswordResetFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		// Also for an unknown email — must not reveal whether email exists.
 		resp = c.post("/api/v1/auth/password-reset/request", map[string]any{"email": "unknown@example.com"})
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200 for unknown email, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("complete reset with valid token", func(t *testing.T) {
@@ -143,14 +143,14 @@ func TestPasswordResetFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d: %v", resp.StatusCode, mustJSON(t, resp))
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		// Can log in with new password.
 		resp = c.post("/api/v1/auth/login", map[string]any{"email": email, "password": "newpass-9secure!"})
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("login after reset: expected 200, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("expired token returns 400", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestPasswordResetFlow(t *testing.T) {
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400 for expired token, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 }
 

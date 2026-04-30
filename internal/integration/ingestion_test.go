@@ -66,7 +66,7 @@ func TestAPIKeyLifecycle(t *testing.T) {
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("create run with API key: %d: %v", resp.StatusCode, mustJSON(t, resp))
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("invalid key returns 401", func(t *testing.T) {
@@ -78,7 +78,7 @@ func TestAPIKeyLifecycle(t *testing.T) {
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("expected 401, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("revoked key returns 401", func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestAPIKeyLifecycle(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("revoke: %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		apiClient := ts.client().withAPIKey(fullKey)
 		resp = apiClient.post("/v1/runs", map[string]any{
@@ -96,7 +96,7 @@ func TestAPIKeyLifecycle(t *testing.T) {
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("revoked key: expected 401, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 }
 
@@ -167,7 +167,7 @@ func TestCoverageIngestion(t *testing.T) {
 			// also acceptable: inserted == 0 (unique constraint absorbs)
 			_ = msg
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("unsupported schema_version returns 400", func(t *testing.T) {
@@ -185,7 +185,7 @@ func TestCoverageIngestion(t *testing.T) {
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("API key from project A cannot submit to project B", func(t *testing.T) {
@@ -217,7 +217,7 @@ func TestCoverageIngestion(t *testing.T) {
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("cross-tenant write: expected 403, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 }
 
@@ -268,7 +268,7 @@ func TestRunLifecycle(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("update test: %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// 4. Mark run complete.
 	resp = apiClient.patch("/v1/runs/"+runID, map[string]any{

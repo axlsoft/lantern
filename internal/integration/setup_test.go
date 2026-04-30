@@ -219,7 +219,7 @@ func signupAndLogin(t *testing.T, ts *testServer, email, password string) *clien
 		mustJSON(t, resp)
 		t.Fatalf("signup %s: got %d", email, resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Mark verified directly in DB (no SMTP in test).
 	_, err := ts.pool.Exec(context.Background(),
@@ -233,7 +233,7 @@ func signupAndLogin(t *testing.T, ts *testServer, email, password string) *clien
 		mustJSON(t, resp)
 		t.Fatalf("login %s: got %d", email, resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	c.cookies = resp.Cookies()
 	return c
 }

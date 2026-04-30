@@ -40,7 +40,7 @@ func TestTenantIsolation(t *testing.T) {
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("expected 404, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("org B cannot read org A", func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestTenantIsolation(t *testing.T) {
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("expected 404, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("org A cannot read org B's project", func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestTenantIsolation(t *testing.T) {
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("expected 404, got %d (cross-tenant project read must be 404)", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("org B cannot read org A's project", func(t *testing.T) {
@@ -64,7 +64,7 @@ func TestTenantIsolation(t *testing.T) {
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("expected 404, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("org A cannot delete org B's project", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestTenantIsolation(t *testing.T) {
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("expected 404, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 }
 
@@ -112,14 +112,14 @@ func TestRBAC(t *testing.T) {
 	if acceptResp.StatusCode != http.StatusOK {
 		t.Fatalf("accept invite: %d", acceptResp.StatusCode)
 	}
-	acceptResp.Body.Close()
+	_ = acceptResp.Body.Close()
 
 	t.Run("viewer can read project", func(t *testing.T) {
 		resp := viewer.get("/api/v1/projects/" + projID)
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("expected 200, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("viewer cannot delete project", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestRBAC(t *testing.T) {
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("expected 403, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("viewer cannot delete org", func(t *testing.T) {
@@ -135,7 +135,7 @@ func TestRBAC(t *testing.T) {
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("expected 403, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("viewer cannot create project", func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestRBAC(t *testing.T) {
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("expected 403, got %d", resp.StatusCode)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 }
 
