@@ -35,3 +35,36 @@ RETURNING *;
 
 -- name: ListTestsByRun :many
 SELECT * FROM tests WHERE run_id = $1 ORDER BY started_at;
+
+-- name: ListRunsByProject :many
+SELECT * FROM runs
+WHERE project_id = $1
+ORDER BY started_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: ListRunsByProjectAndPR :many
+SELECT * FROM runs
+WHERE project_id = $1 AND github_pr_number = $2
+ORDER BY started_at DESC;
+
+-- name: GetLatestCompletedRunByProject :one
+SELECT * FROM runs
+WHERE project_id = $1 AND status = 'completed'
+ORDER BY started_at DESC
+LIMIT 1;
+
+-- name: ListTestsByRunPaginated :many
+SELECT t.*,
+       COUNT(DISTINCT ce.line_start)::INT AS covered_lines
+FROM tests t
+LEFT JOIN coverage_events ce ON ce.test_id = t.id
+WHERE t.run_id = $1
+  AND ($2::TEXT = '' OR t.status::TEXT = $2)
+GROUP BY t.id
+ORDER BY t.started_at
+LIMIT $3 OFFSET $4;
+
+-- name: CountTestsByRun :one
+SELECT COUNT(*)::BIGINT FROM tests
+WHERE run_id = $1
+  AND ($2::TEXT = '' OR status::TEXT = $2);

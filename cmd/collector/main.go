@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/axlsoft/lantern/internal/db"
 	"github.com/axlsoft/lantern/internal/handler"
 	"github.com/axlsoft/lantern/internal/mailer"
+	"github.com/axlsoft/lantern/ui"
 )
 
 func main() {
@@ -50,11 +52,14 @@ func main() {
 	orgH := handler.NewOrgHandler(pool, m, cfg)
 	apiKeyH := handler.NewAPIKeyHandler(pool, cfg)
 	ingestH := handler.NewIngestionHandler(pool, cfg)
+	covH := handler.NewCoverageHandler(pool, cfg)
+	githubH := handler.NewGitHubHandler(pool, cfg)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
+	r.Use(securityHeaders)
 	r.Use(requestLogger(logger))
 
 	// ── Health ──────────────────────────────────────────────────────────────
@@ -114,11 +119,24 @@ func main() {
 		r.Patch("/api/v1/projects/{project_id}", orgH.UpdateProject)
 		r.Delete("/api/v1/projects/{project_id}", orgH.DeleteProject)
 
-		// API keys (managed via session auth)
+		// API keys
 		r.Post("/api/v1/projects/{project_id}/api-keys", apiKeyH.CreateAPIKey)
 		r.Get("/api/v1/projects/{project_id}/api-keys", apiKeyH.ListAPIKeys)
 		r.Post("/api/v1/projects/{project_id}/api-keys/{key_id}/rotate", apiKeyH.RotateAPIKey)
 		r.Delete("/api/v1/projects/{project_id}/api-keys/{key_id}", apiKeyH.RevokeAPIKey)
+
+		// Dashboard + coverage views
+		r.Get("/api/v1/projects/{project_id}/dashboard", covH.GetDashboard)
+		r.Get("/api/v1/projects/{project_id}/runs", covH.ListRuns)
+		r.Get("/api/v1/projects/{project_id}/runs/{run_id}", covH.GetRun)
+		r.Get("/api/v1/projects/{project_id}/runs/{run_id}/tests", covH.ListRunTests)
+		r.Get("/api/v1/projects/{project_id}/gaps", covH.GetGaps)
+		r.Get("/api/v1/projects/{project_id}/files/*", covH.GetFileCoverage)
+		r.Get("/api/v1/projects/{project_id}/file-lines/{path}/lines/{line}/tests", covH.GetLineTests)
+		r.Get("/api/v1/projects/{project_id}/prs/{pr_number}", covH.GetPRCoverage)
+
+		// GitHub source proxy
+		r.Get("/api/v1/github/repos/{owner}/{repo}/contents/*", githubH.ProxyContents)
 	})
 
 	// ── Ingestion API (API key authenticated) ────────────────────────────────
@@ -131,6 +149,14 @@ func main() {
 		r.Post("/v1/runs/{run_id}/tests", ingestH.RegisterTests)
 		r.Patch("/v1/runs/{run_id}/tests/{test_id}", ingestH.UpdateTest)
 	})
+
+	// ── Static UI (SPA fallback) ─────────────────────────────────────────────
+	staticFS, err := fs.Sub(ui.StaticFiles, "build")
+	if err != nil {
+		logger.Error("embed UI build", "err", err)
+		os.Exit(1)
+	}
+	r.Handle("/*", spaHandler(staticFS))
 
 	srv := &http.Server{
 		Addr:         cfg.HTTPAddr,
@@ -158,6 +184,56 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Info("shutdown complete")
+}
+
+// securityHeaders sets mandatory security response headers on every response.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+		// Shiki uses inline styles; 'unsafe-inline' for style-src is required.
+		// script-src remains 'self' only — no eval, no inline scripts.
+		h.Set("Content-Security-Policy",
+			"default-src 'self'; "+
+				"script-src 'self'; "+
+				"style-src 'self' 'unsafe-inline'; "+
+				"img-src 'self' data:; "+
+				"connect-src 'self'; "+
+				"font-src 'self'; "+
+				"frame-ancestors 'none'")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// spaHandler serves static assets with immutable cache headers and falls back
+// to index.html for client-side routes so SvelteKit routing works correctly.
+func spaHandler(fsys fs.FS) http.Handler {
+	fileServer := http.FileServer(http.FS(fsys))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if len(path) > 0 {
+			path = path[1:] // strip leading /
+		}
+
+		f, err := fsys.Open(path)
+		if err == nil {
+			f.Close()
+			if r.URL.Path != "/" && r.URL.Path != "/index.html" {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				w.Header().Set("Cache-Control", "no-store")
+			}
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+		// Not a static asset — SPA fallback to index.html.
+		w.Header().Set("Cache-Control", "no-store")
+		r.URL.Path = "/"
+		fileServer.ServeHTTP(w, r)
+	})
 }
 
 func requestLogger(logger *slog.Logger) func(http.Handler) http.Handler {

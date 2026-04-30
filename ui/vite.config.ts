@@ -10,6 +10,15 @@ export default defineConfig({
 			{
 				extends: './vite.config.ts',
 				test: {
+					name: 'browser',
+					environment: 'jsdom',
+					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+					setupFiles: ['src/test-setup.ts']
+				}
+			},
+			{
+				extends: './vite.config.ts',
+				test: {
 					name: 'server',
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{js,ts}'],

@@ -1,4 +1,4 @@
-.PHONY: bootstrap lint test proto-lint ui-install ui-build
+.PHONY: bootstrap lint test build proto-lint ui-install ui-build
 
 ## Install all tools and dependencies, start compose services.
 bootstrap:
@@ -35,6 +35,10 @@ ui-install:
 ## Build the UI static bundle.
 ui-build:
 	pnpm --dir ui build
+
+## Full production build: UI static bundle → Go binary (single binary with embedded assets).
+build: ui-build
+	go build -o bin/collector ./cmd/collector
 
 ## Lint proto schemas only.
 proto-lint:
