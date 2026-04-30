@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -17,6 +19,15 @@ import (
 	"github.com/axlsoft/lantern/internal/pgconv"
 	"github.com/axlsoft/lantern/internal/tenancy"
 )
+
+var slugNonAlnumRe = regexp.MustCompile(`[^a-z0-9]+`)
+
+// slugify converts a display name into a URL-safe slug.
+func slugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = slugNonAlnumRe.ReplaceAllString(s, "-")
+	return strings.Trim(s, "-")
+}
 
 // OrgHandler handles org/team/project management endpoints.
 type OrgHandler struct {
@@ -42,7 +53,9 @@ func NewOrgHandler(pool *pgxpool.Pool, m mailer.Sender, cfg *config.Config) *Org
 // organizations table has no RLS; pool-level queries are fine here.
 
 func (h *OrgHandler) CreateOrg(w http.ResponseWriter, r *http.Request) {
-	var body struct{ Name string `json:"name"` }
+	var body struct {
+		Name string `json:"name"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		httperr.BadRequest(w, "name is required")
 		return
@@ -115,7 +128,9 @@ func (h *OrgHandler) UpdateOrg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body struct{ Name string `json:"name"` }
+	var body struct {
+		Name string `json:"name"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		httperr.BadRequest(w, "name is required")
 		return
@@ -263,7 +278,9 @@ func (h *OrgHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body struct{ Name string `json:"name"` }
+	var body struct {
+		Name string `json:"name"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		httperr.BadRequest(w, "name is required")
 		return
@@ -377,7 +394,9 @@ func (h *OrgHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body struct{ Name string `json:"name"` }
+	var body struct {
+		Name string `json:"name"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		httperr.BadRequest(w, "name is required")
 		return
@@ -527,8 +546,15 @@ func (h *OrgHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 		DefaultBranch      string `json:"default_branch"`
 		GithubRepoFullName string `json:"github_repo_full_name"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" || body.Slug == "" {
-		httperr.BadRequest(w, "name and slug are required")
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		httperr.BadRequest(w, "name is required")
+		return
+	}
+	if body.Slug == "" {
+		body.Slug = slugify(body.Name)
+	}
+	if body.Slug == "" {
+		httperr.BadRequest(w, "name must contain at least one alphanumeric character")
 		return
 	}
 	if body.DefaultBranch == "" {
@@ -601,6 +627,32 @@ func (h *OrgHandler) GetProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"data": project})
+}
+
+func (h *OrgHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
+	orgID, err := parseUUID(chi.URLParam(r, "org_id"))
+	if err != nil {
+		httperr.NotFound(w, "organization not found")
+		return
+	}
+	if err := h.perm.RequireOrgID(r.Context(), orgID, authz.PermProjectRead); err != nil {
+		writePermError(w, err)
+		return
+	}
+
+	tx, q, err := beginOrgTx(r.Context(), h.pool, orgID)
+	if err != nil {
+		httperr.Internal(w, "database error")
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	projects, err := q.ListProjects(r.Context(), pgconv.UUID(orgID))
+	if err != nil {
+		httperr.Internal(w, "could not list projects")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"data": projects})
 }
 
 func (h *OrgHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {

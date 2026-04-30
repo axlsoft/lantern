@@ -324,6 +324,12 @@ class ApiClient {
 		}).then((project) => ({ project }));
 	}
 
+	listProjects(orgId: string) {
+		return this.request<Project[]>(`/api/v1/organizations/${orgId}/projects`).then((projects) => ({
+			projects
+		}));
+	}
+
 	getProject(projectId: string) {
 		return this.request<Project>(`/api/v1/projects/${projectId}`).then((project) => ({ project }));
 	}

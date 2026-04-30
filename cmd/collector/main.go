@@ -133,6 +133,7 @@ func main() {
 		r.Post("/api/v1/teams/{team_id}/members", orgH.AddTeamMember)
 
 		// Projects
+		r.Get("/api/v1/organizations/{org_id}/projects", orgH.ListProjects)
 		r.Post("/api/v1/teams/{team_id}/projects", orgH.CreateProject)
 		r.Get("/api/v1/projects/{project_id}", orgH.GetProject)
 		r.Patch("/api/v1/projects/{project_id}", orgH.UpdateProject)

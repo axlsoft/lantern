@@ -50,11 +50,21 @@
 	onMount(async () => {
 		loading = true;
 		try {
-			// For MVP, we need to know the user's org. Until "list my orgs" exists,
-			// we try to create one if none exists, or fetch details via the session.
-			// The user's org is accessible after they've created one.
-		} catch {
-			// ignore — user may not have an org yet
+			const me = await api.me();
+			const myOrg = me.organizations?.[0];
+			if (!myOrg) {
+				return;
+			}
+			const orgRes = await api.getOrg(myOrg.id);
+			org = orgRes.organization;
+			const [teamsRes, projectsRes] = await Promise.all([
+				api.listTeams(org.id),
+				api.listProjects(org.id)
+			]);
+			teams = teamsRes.teams;
+			projects = projectsRes.projects;
+		} catch (err) {
+			console.error('[admin] failed to load org data', err);
 		} finally {
 			loading = false;
 		}
