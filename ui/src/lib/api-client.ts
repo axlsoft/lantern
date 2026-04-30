@@ -10,7 +10,7 @@
 // ── Shared types ─────────────────────────────────────────────────────────────
 
 export interface ApiError {
-	error: string;
+	error: { code: string; message: string };
 	request_id?: string;
 }
 
@@ -22,8 +22,10 @@ export type TestStatus = 'passed' | 'failed' | 'skipped' | 'timed_out';
 export interface User {
 	id: string;
 	email: string;
-	display_name: string;
+	display_name?: string;
 	created_at: string;
+	email_verified_at?: string | null;
+	organizations?: Array<{ id: string; name: string; role?: string }>;
 }
 
 export interface Organization {
@@ -178,26 +180,40 @@ class ApiClient {
 	}
 
 	private async request<T>(path: string, init?: RequestInit): Promise<T> {
+		console.log('[api] →', init?.method ?? 'GET', path);
 		const res = await fetch(`${this.base}${path}`, {
 			credentials: 'same-origin',
 			headers: { 'Content-Type': 'application/json', ...init?.headers },
 			...init
 		});
+		console.log('[api] ←', res.status, init?.method ?? 'GET', path);
 
 		if (!res.ok) {
-			const body = (await res.json().catch(() => ({ error: res.statusText }))) as ApiError;
-			const err = new Error(body.error || res.statusText) as Error & {
+			const body = (await res.json().catch(() => ({}))) as Partial<ApiError>;
+			const message = body.error?.message || res.statusText;
+			const err = new Error(message) as Error & {
 				status: number;
+				code?: string;
 				requestId?: string;
 			};
 			err.status = res.status;
+			err.code = body.error?.code;
 			err.requestId = body.request_id;
 			throw err;
 		}
 
 		// 204 No Content
 		if (res.status === 204) return undefined as T;
-		return res.json() as Promise<T>;
+		const payload = (await res.json()) as { data?: unknown } | unknown;
+		// Server wraps successful responses in {"data": ...}; unwrap if present.
+		if (
+			payload &&
+			typeof payload === 'object' &&
+			'data' in (payload as Record<string, unknown>)
+		) {
+			return (payload as { data: T }).data;
+		}
+		return payload as T;
 	}
 
 	// ── Auth ────────────────────────────────────────────────────────────────
@@ -221,7 +237,7 @@ class ApiClient {
 	}
 
 	me() {
-		return this.request<{ user: User }>('/api/v1/auth/me');
+		return this.request<User>('/api/v1/auth/me');
 	}
 
 	requestPasswordReset(email: string) {
@@ -245,21 +261,23 @@ class ApiClient {
 	// ── Organizations ───────────────────────────────────────────────────────
 
 	createOrg(name: string) {
-		return this.request<{ organization: Organization }>('/api/v1/organizations', {
+		return this.request<Organization>('/api/v1/organizations', {
 			method: 'POST',
 			body: JSON.stringify({ name })
-		});
+		}).then((organization) => ({ organization }));
 	}
 
 	getOrg(orgId: string) {
-		return this.request<{ organization: Organization }>(`/api/v1/organizations/${orgId}`);
+		return this.request<Organization>(`/api/v1/organizations/${orgId}`).then((organization) => ({
+			organization
+		}));
 	}
 
 	updateOrg(orgId: string, name: string) {
-		return this.request<{ organization: Organization }>(`/api/v1/organizations/${orgId}`, {
+		return this.request<Organization>(`/api/v1/organizations/${orgId}`, {
 			method: 'PATCH',
 			body: JSON.stringify({ name })
-		});
+		}).then((organization) => ({ organization }));
 	}
 
 	inviteToOrg(orgId: string, email: string, role: OrgRole) {
@@ -276,18 +294,18 @@ class ApiClient {
 	// ── Teams ───────────────────────────────────────────────────────────────
 
 	createTeam(orgId: string, name: string) {
-		return this.request<{ team: Team }>(`/api/v1/organizations/${orgId}/teams`, {
+		return this.request<Team>(`/api/v1/organizations/${orgId}/teams`, {
 			method: 'POST',
 			body: JSON.stringify({ name })
-		});
+		}).then((team) => ({ team }));
 	}
 
 	listTeams(orgId: string) {
-		return this.request<{ teams: Team[] }>(`/api/v1/organizations/${orgId}/teams`);
+		return this.request<Team[]>(`/api/v1/organizations/${orgId}/teams`).then((teams) => ({ teams }));
 	}
 
 	getTeam(teamId: string) {
-		return this.request<{ team: Team }>(`/api/v1/teams/${teamId}`);
+		return this.request<Team>(`/api/v1/teams/${teamId}`).then((team) => ({ team }));
 	}
 
 	addTeamMember(teamId: string, userId: string, role: TeamRole) {
@@ -300,24 +318,24 @@ class ApiClient {
 	// ── Projects ────────────────────────────────────────────────────────────
 
 	createProject(teamId: string, name: string, githubRepo?: string) {
-		return this.request<{ project: Project }>(`/api/v1/teams/${teamId}/projects`, {
+		return this.request<Project>(`/api/v1/teams/${teamId}/projects`, {
 			method: 'POST',
 			body: JSON.stringify({ name, github_repo_full_name: githubRepo ?? null })
-		});
+		}).then((project) => ({ project }));
 	}
 
 	getProject(projectId: string) {
-		return this.request<{ project: Project }>(`/api/v1/projects/${projectId}`);
+		return this.request<Project>(`/api/v1/projects/${projectId}`).then((project) => ({ project }));
 	}
 
 	updateProject(
 		projectId: string,
 		patch: Partial<Pick<Project, 'name' | 'github_repo_full_name' | 'default_branch'>>
 	) {
-		return this.request<{ project: Project }>(`/api/v1/projects/${projectId}`, {
+		return this.request<Project>(`/api/v1/projects/${projectId}`, {
 			method: 'PATCH',
 			body: JSON.stringify(patch)
-		});
+		}).then((project) => ({ project }));
 	}
 
 	deleteProject(projectId: string) {
@@ -327,14 +345,16 @@ class ApiClient {
 	// ── API Keys ────────────────────────────────────────────────────────────
 
 	createApiKey(projectId: string, name: string) {
-		return this.request<{ api_key: ApiKeyCreated }>(`/api/v1/projects/${projectId}/api-keys`, {
+		return this.request<ApiKeyCreated>(`/api/v1/projects/${projectId}/api-keys`, {
 			method: 'POST',
 			body: JSON.stringify({ name })
-		});
+		}).then((api_key) => ({ api_key }));
 	}
 
 	listApiKeys(projectId: string) {
-		return this.request<{ api_keys: ApiKey[] }>(`/api/v1/projects/${projectId}/api-keys`);
+		return this.request<ApiKey[]>(`/api/v1/projects/${projectId}/api-keys`).then((api_keys) => ({
+			api_keys
+		}));
 	}
 
 	revokeApiKey(projectId: string, keyId: string) {
@@ -344,10 +364,10 @@ class ApiClient {
 	}
 
 	rotateApiKey(projectId: string, keyId: string) {
-		return this.request<{ api_key: ApiKeyCreated }>(
+		return this.request<ApiKeyCreated>(
 			`/api/v1/projects/${projectId}/api-keys/${keyId}/rotate`,
 			{ method: 'POST' }
-		);
+		).then((api_key) => ({ api_key }));
 	}
 
 	// ── Dashboard ───────────────────────────────────────────────────────────

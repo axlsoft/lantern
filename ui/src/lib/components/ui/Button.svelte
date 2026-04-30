@@ -5,6 +5,7 @@
 		variant?: 'default' | 'outline' | 'ghost' | 'destructive' | 'link';
 		size?: 'sm' | 'md' | 'lg' | 'icon';
 		type?: 'button' | 'submit' | 'reset';
+		form?: string;
 		disabled?: boolean;
 		loading?: boolean;
 		class?: string;
@@ -16,6 +17,7 @@
 		variant = 'default',
 		size = 'md',
 		type = 'button',
+		form,
 		disabled = false,
 		loading = false,
 		class: cls = '',
@@ -44,6 +46,7 @@
 
 <button
 	{type}
+	{form}
 	disabled={disabled || loading}
 	aria-busy={loading}
 	class={cn(base, variants[variant], sizes[size], cls)}

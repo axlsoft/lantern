@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { session, logout } from '$lib/auth.js';
+	import { session, logout } from '$lib/auth.svelte.js';
 	import type { Project } from '$lib/api-client.js';
 	import { ChevronDown, LogOut, Settings } from 'lucide-svelte';
 

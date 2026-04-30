@@ -2,13 +2,18 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
@@ -55,11 +60,25 @@ func main() {
 	covH := handler.NewCoverageHandler(pool, cfg)
 	githubH := handler.NewGitHubHandler(pool, cfg)
 
+	// Compute CSP script hashes from embedded UI HTML (SvelteKit emits a small
+	// inline hydration script per page; hashes are deterministic per build).
+	staticFS, err := fs.Sub(ui.StaticFiles, "build")
+	if err != nil {
+		logger.Error("embed UI build", "err", err)
+		os.Exit(1)
+	}
+	scriptHashes, err := computeInlineScriptHashes(staticFS)
+	if err != nil {
+		logger.Error("compute CSP script hashes", "err", err)
+		os.Exit(1)
+	}
+	logger.Info("computed CSP script hashes", "count", len(scriptHashes))
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
-	r.Use(securityHeaders)
+	r.Use(securityHeaders(scriptHashes))
 	r.Use(requestLogger(logger))
 
 	// ── Health ──────────────────────────────────────────────────────────────
@@ -151,11 +170,6 @@ func main() {
 	})
 
 	// ── Static UI (SPA fallback) ─────────────────────────────────────────────
-	staticFS, err := fs.Sub(ui.StaticFiles, "build")
-	if err != nil {
-		logger.Error("embed UI build", "err", err)
-		os.Exit(1)
-	}
 	r.Handle("/*", spaHandler(staticFS))
 
 	srv := &http.Server{
@@ -187,25 +201,80 @@ func main() {
 }
 
 // securityHeaders sets mandatory security response headers on every response.
-func securityHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h := w.Header()
-		h.Set("X-Frame-Options", "DENY")
-		h.Set("X-Content-Type-Options", "nosniff")
-		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-		// Shiki uses inline styles; 'unsafe-inline' for style-src is required.
-		// script-src remains 'self' only — no eval, no inline scripts.
-		h.Set("Content-Security-Policy",
-			"default-src 'self'; "+
-				"script-src 'self'; "+
-				"style-src 'self' 'unsafe-inline'; "+
-				"img-src 'self' data:; "+
-				"connect-src 'self'; "+
-				"font-src 'self'; "+
-				"frame-ancestors 'none'")
-		next.ServeHTTP(w, r)
+// scriptHashes are SHA-256 hashes (base64) of inline <script> bodies found in
+// the embedded UI HTML; they are added to the script-src directive so SvelteKit's
+// hydration bootstrap script is allowed without 'unsafe-inline'.
+func securityHeaders(scriptHashes []string) func(http.Handler) http.Handler {
+	scriptSrc := "script-src 'self'"
+	for _, hash := range scriptHashes {
+		scriptSrc += " 'sha256-" + hash + "'"
+	}
+	csp := "default-src 'self'; " +
+		scriptSrc + "; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data:; " +
+		"connect-src 'self'; " +
+		"font-src 'self'; " +
+		"frame-ancestors 'none'"
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := w.Header()
+			h.Set("X-Frame-Options", "DENY")
+			h.Set("X-Content-Type-Options", "nosniff")
+			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+			// Shiki uses inline styles; 'unsafe-inline' for style-src is required.
+			h.Set("Content-Security-Policy", csp)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// inlineScriptRe matches the body of <script>...</script> tags that have no
+// src attribute (i.e. inline scripts). Tags with a src attribute are ignored.
+var inlineScriptRe = regexp.MustCompile(`(?is)<script(?:\s+(?:[^>]*?))?>(.*?)</script>`)
+var hasSrcAttrRe = regexp.MustCompile(`(?i)\ssrc\s*=`)
+
+// computeInlineScriptHashes walks fsys, parses every .html file, and returns
+// deduped base64 SHA-256 hashes of every inline <script> body. These are used
+// in the CSP script-src directive so the strict 'self' policy still allows
+// SvelteKit's small inline hydration bootstrap.
+func computeInlineScriptHashes(fsys fs.FS) ([]string, error) {
+	seen := map[string]struct{}{}
+	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(strings.ToLower(path), ".html") {
+			return nil
+		}
+		f, err := fsys.Open(path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		body, err := io.ReadAll(f)
+		if err != nil {
+			return err
+		}
+		for _, m := range inlineScriptRe.FindAllSubmatch(body, -1) {
+			openTag := m[0][:len(m[0])-len(m[1])-len("</script>")]
+			if hasSrcAttrRe.Match(openTag) {
+				continue
+			}
+			sum := sha256.Sum256(m[1])
+			seen[base64.StdEncoding.EncodeToString(sum[:])] = struct{}{}
+		}
+		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	hashes := make([]string, 0, len(seen))
+	for h := range seen {
+		hashes = append(hashes, h)
+	}
+	return hashes, nil
 }
 
 // spaHandler serves static assets with immutable cache headers and falls back

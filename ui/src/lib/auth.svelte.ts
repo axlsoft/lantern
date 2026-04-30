@@ -23,8 +23,7 @@ export async function initSession() {
 	if (_initialized) return;
 	_initialized = true;
 	try {
-		const res = await api.me();
-		_user = res.user;
+		_user = await api.me();
 	} catch {
 		_user = null;
 	} finally {
@@ -33,8 +32,8 @@ export async function initSession() {
 }
 
 export async function login(email: string, password: string, next?: string): Promise<void> {
-	const res = await api.login(email, password);
-	_user = res.user;
+	await api.login(email, password);
+	_user = await api.me();
 	const dest = next && isSafeRedirect(next) ? next : '/dashboard';
 	await goto(dest);
 }

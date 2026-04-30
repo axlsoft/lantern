@@ -64,14 +64,18 @@
 
 	async function createOrg(e: SubmitEvent) {
 		e.preventDefault();
+		console.log('[admin] createOrg fired', { orgName });
 		formError = '';
 		formLoading = true;
 		try {
+			console.log('[admin] calling api.createOrg…');
 			const res = await api.createOrg(orgName);
+			console.log('[admin] api.createOrg returned', res);
 			org = res.organization;
 			showCreateOrg = false;
 			orgName = '';
 		} catch (err: unknown) {
+			console.error('[admin] createOrg failed', err);
 			formError = (err as { message?: string }).message ?? 'Failed to create organization.';
 		} finally {
 			formLoading = false;
@@ -323,11 +327,10 @@
 		<FormField id="org-name" label="Organization name">
 			<Input id="org-name" bind:value={orgName} required placeholder="Acme Corp" />
 		</FormField>
-		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-		{#snippet footer()}
+		<div class="mt-2 flex justify-end gap-3">
 			<Button variant="outline" onclick={() => (showCreateOrg = false)}>Cancel</Button>
 			<Button type="submit" loading={formLoading}>Create</Button>
-		{/snippet}
+		</div>
 	</form>
 </Dialog>
 
@@ -357,11 +360,10 @@
 				{/each}
 			</div>
 		</fieldset>
-		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-		{#snippet footer()}
+		<div class="mt-2 flex justify-end gap-3">
 			<Button variant="outline" onclick={() => (showInviteUser = false)}>Cancel</Button>
 			<Button type="submit" loading={formLoading}>Send invite</Button>
-		{/snippet}
+		</div>
 	</form>
 </Dialog>
 
@@ -374,11 +376,10 @@
 		<FormField id="team-name" label="Team name">
 			<Input id="team-name" bind:value={teamName} required placeholder="Platform" />
 		</FormField>
-		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-		{#snippet footer()}
+		<div class="mt-2 flex justify-end gap-3">
 			<Button variant="outline" onclick={() => (showCreateTeam = false)}>Cancel</Button>
 			<Button type="submit" loading={formLoading}>Create</Button>
-		{/snippet}
+		</div>
 	</form>
 </Dialog>
 
@@ -394,11 +395,10 @@
 		<FormField id="proj-repo" label="GitHub repo (optional)">
 			<Input id="proj-repo" bind:value={projectRepo} placeholder="owner/repo" />
 		</FormField>
-		<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-		{#snippet footer()}
+		<div class="mt-2 flex justify-end gap-3">
 			<Button variant="outline" onclick={() => (showCreateProject = false)}>Cancel</Button>
 			<Button type="submit" loading={formLoading}>Create</Button>
-		{/snippet}
+		</div>
 	</form>
 </Dialog>
 

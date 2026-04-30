@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { session } from '$lib/auth.js';
+	import { session } from '$lib/auth.svelte.js';
 
 	onMount(() => {
 		if (!session.loading) {
